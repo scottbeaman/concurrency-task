@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 var urls = []string{
@@ -16,16 +17,19 @@ var urls = []string{
 func req(ctx context.Context, url string, back chan string) {
 	tr := &http.Transport{}
 	client := &http.Client{Transport: tr}
+	time_start := time.Now()
 	resp, err := client.Get(url)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 	resp.Body.Close()
-	back <- url
+	back <- fmt.Sprintf("%s - %s", time.Since(time_start).String(), url)
 }
 
 func makeRequests() {
-	ctx, cancel := context.WithCancel(context.Background())
+	//ctx, _ := context.WithCancel(context.Background())
+	//ctx, _ := context.WithTimeout(context.Background(), 4*time.Second)
+	ctx := context.Background()
 	back := make(chan string)
 	fmt.Println("Making requests...")
 	for _, url := range urls {
@@ -36,10 +40,11 @@ func makeRequests() {
 		select {
 		case <-ctx.Done():
 			fmt.Println(ctx.Err())
-		case u := <-back:
-			fmt.Printf("%s wins!\n", u)
-			cancel()
 			return
+		case u := <-back:
+			fmt.Println(u)
+		//cancel()
+		//return
 		}
 	}
 }
